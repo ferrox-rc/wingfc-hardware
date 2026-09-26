@@ -1,0 +1,20 @@
+# KiCad temp and backup files
+*.kicad_prl
+*.kicad_pcb-bak
+*.kicad_sch-bak
+*-save.kicad_pcb
+*-save.kicad_sch
+*-backups/
+_autosave-*
+*.tmp
+*.bak
+*.lck
+fp-info-cache
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.vscode/
+.idea/
