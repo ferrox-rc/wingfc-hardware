@@ -18,6 +18,13 @@ All notable changes to the WingFC flight controller hardware will be documented 
 - **RF & Testability:**
   - Dedicated antenna keepout zone across all 4 copper layers over the South antenna region of the XIAO module.
   - Exposed SWD test pads (`TP1`..`TP5`) and spare GPIOs D17..D19 (`TP6`..`TP8`) on `B.Cu`.
+- **Silkscreen & Placement Refinements:**
+  - Standalone high-visibility flight direction arrow pointing North.
+  - Added official `FerroxRC` and `WingFC` brand markings on top (`F.SilkS`) and `FerroxRC WingFC Rev C` on bottom (`B.SilkS`).
+  - Adjusted mounting hole labels `H1`–`H4` inward to guarantee complete margin from edges/cuts.
+  - Relocated `J_RC`, `J_GPS`, and `J_BAT` labels to the North side of connector pads, preventing solder/pad occlusion.
+  - Shifted barometer `U3` and bypass cap `C7` Eastward (+1.5 mm) for generous clearance to TVS diode `D4`.
+  - Tuned `D4` and `L1` label positioning for clean margins.
 - **Firmware Synchronization:** GPIO mapping fully synchronized with `wingfc-rs` (`pins.rs`).
 
 ## [Rev B - v1.0.0] - 2026-09-25

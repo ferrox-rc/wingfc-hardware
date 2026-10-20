@@ -100,8 +100,9 @@ def build_pcb():
         ref_text = mh.Reference()
         ref_text.SetTextSize(pcbnew.VECTOR2I(mm(0.8), mm(0.8)))
         ref_text.SetTextThickness(mm(0.12))
-        dx = -2.2 if hx < cx else 2.2
-        dy = -2.2 if hy < cy else 2.2
+        # Move Hx labels inward so they are fully visible and never clipped by corners/edges
+        dx = -1.2 if hx < cx else 1.2
+        dy = 1.6 if hy < cy else 1.6
         ref_text.SetPosition(pcbnew.VECTOR2I(mm(hx + dx), mm(hy + dy)))
 
     # 3. Parse Netlist
@@ -196,9 +197,9 @@ def build_pcb():
         "C5":    (158.0, 88.5, "B.Cu", 90),
         "C8":    (160.5, 88.5, "B.Cu", 90),
 
-        # Barometer (Infineon DPS310) & Decoupling
-        "U3":    (159.0, 94.5, "B.Cu", 0),
-        "C7":    (159.0, 97.5, "B.Cu", 0),
+        # Barometer (Infineon DPS310) shifted Eastward for clean clearance to D4
+        "U3":    (160.5, 94.5, "B.Cu", 0),
+        "C7":    (160.5, 97.5, "B.Cu", 0),
 
         # ESC 5V Isolation Jumpers (North of ESC1/ESC2 Pin 1)
         "JP1":   (actuator_x["ESC1"], 107.0, "B.Cu", 0),
@@ -244,17 +245,41 @@ def build_pcb():
             if net_name and net_name in net_objects:
                 pad.SetNet(net_objects[net_name])
 
-        # Silk text formatting
+        # Silk text formatting & strategic positioning
         ref_item = mod.Reference()
         ref_item.SetTextSize(pcbnew.VECTOR2I(mm(0.8), mm(0.8)))
         ref_item.SetTextThickness(mm(0.12))
+        
         # Hide reference silkscreen for small passives and test points to avoid clutter/overlaps
-        if ref.startswith(("C", "R", "TP")) or ref in ("D1", "D2"):
+        if ref.startswith(("C", "R", "TP")) or ref in ("D1", "D2", "U1"):
             ref_item.SetVisible(False)
-        if ref in actuator_x:
+        
+        # Explicit label positions for key components
+        if ref == "J_RC":
+            ref_item.SetPosition(pcbnew.VECTOR2I(mm(137.2), mm(92.5)))
+            ref_item.SetTextAngle(pcbnew.EDA_ANGLE(0, pcbnew.DEGREES_T))
+        elif ref == "J_GPS":
+            ref_item.SetPosition(pcbnew.VECTOR2I(mm(162.8), mm(91.5)))
+            ref_item.SetTextAngle(pcbnew.EDA_ANGLE(0, pcbnew.DEGREES_T))
+        elif ref == "J_BAT":
+            ref_item.SetPosition(pcbnew.VECTOR2I(mm(136.5), mm(100.8)))
+            ref_item.SetTextAngle(pcbnew.EDA_ANGLE(0, pcbnew.DEGREES_T))
+        elif ref == "D4":
+            ref_item.SetPosition(pcbnew.VECTOR2I(mm(154.5), mm(90.15)))
+            ref_item.SetTextAngle(pcbnew.EDA_ANGLE(0, pcbnew.DEGREES_T))
+        elif ref == "L1":
+            ref_item.SetPosition(pcbnew.VECTOR2I(mm(146.0), mm(94.45)))
+            ref_item.SetTextAngle(pcbnew.EDA_ANGLE(0, pcbnew.DEGREES_T))
+        elif ref == "U3":
+            ref_item.SetPosition(pcbnew.VECTOR2I(mm(160.5), mm(92.2)))
+            ref_item.SetTextAngle(pcbnew.EDA_ANGLE(0, pcbnew.DEGREES_T))
+        elif ref in ("S5", "S6", "S7", "S8"):
+            ref_item.SetPosition(pcbnew.VECTOR2I(mm(164.6), mm(placements[ref][1])))
+            ref_item.SetTextAngle(pcbnew.EDA_ANGLE(0, pcbnew.DEGREES_T))
+        elif ref in actuator_x:
             ref_item.SetTextAngle(pcbnew.EDA_ANGLE(90, pcbnew.DEGREES_T))
             px, py, _, _ = placements[ref]
-            ref_item.SetPosition(pcbnew.VECTOR2I(mm(px), mm(servo_y - 2.0)))
+            ref_item.SetPosition(pcbnew.VECTOR2I(mm(px), mm(servo_y - 2.8)))
 
         placed_mods[ref] = mod
 
@@ -269,39 +294,58 @@ def build_pcb():
             txt.SetTextThickness(mm(0.12))
             board.Add(txt)
 
-    # Top board silkscreen title & flight direction arrow
-    title = pcbnew.PCB_TEXT(board)
-    title.SetText("WingFC")
-    title.SetPosition(pcbnew.VECTOR2I(mm(cx), mm(107.5)))
-    title.SetLayer(pcbnew.F_SilkS)
-    title.SetTextSize(pcbnew.VECTOR2I(mm(0.9), mm(0.9)))
-    title.SetTextThickness(mm(0.13))
-    board.Add(title)
+    # Top board silkscreen branding: FerroxRC & WingFC in West shelf
+    brand1 = pcbnew.PCB_TEXT(board)
+    brand1.SetText("FerroxRC")
+    brand1.SetPosition(pcbnew.VECTOR2I(mm(138.5), mm(109.2)))
+    brand1.SetLayer(pcbnew.F_SilkS)
+    brand1.SetTextSize(pcbnew.VECTOR2I(mm(0.8), mm(0.8)))
+    brand1.SetTextThickness(mm(0.13))
+    board.Add(brand1)
 
-    arrow_y = 104.5
+    brand2 = pcbnew.PCB_TEXT(board)
+    brand2.SetText("WingFC")
+    brand2.SetPosition(pcbnew.VECTOR2I(mm(138.5), mm(110.8)))
+    brand2.SetLayer(pcbnew.F_SilkS)
+    brand2.SetTextSize(pcbnew.VECTOR2I(mm(0.8), mm(0.8)))
+    brand2.SetTextThickness(mm(0.13))
+    board.Add(brand2)
+
+    # Standalone Center Flight Direction Arrow (Clean, bold, pointing North)
+    arrow_y = 105.0
     s_arrow = pcbnew.PCB_SHAPE(board)
     s_arrow.SetShape(pcbnew.SHAPE_T_SEGMENT)
-    s_arrow.SetStart(pcbnew.VECTOR2I(mm(cx), mm(arrow_y + 1.5)))
-    s_arrow.SetEnd(pcbnew.VECTOR2I(mm(cx), mm(arrow_y - 1.5)))
+    s_arrow.SetStart(pcbnew.VECTOR2I(mm(cx), mm(arrow_y + 2.0)))
+    s_arrow.SetEnd(pcbnew.VECTOR2I(mm(cx), mm(arrow_y - 2.0)))
     s_arrow.SetLayer(pcbnew.F_SilkS)
-    s_arrow.SetWidth(mm(0.25))
+    s_arrow.SetWidth(mm(0.35))
     board.Add(s_arrow)
 
     s_head1 = pcbnew.PCB_SHAPE(board)
     s_head1.SetShape(pcbnew.SHAPE_T_SEGMENT)
-    s_head1.SetStart(pcbnew.VECTOR2I(mm(cx), mm(arrow_y - 1.5)))
-    s_head1.SetEnd(pcbnew.VECTOR2I(mm(cx - 0.8), mm(arrow_y - 0.7)))
+    s_head1.SetStart(pcbnew.VECTOR2I(mm(cx), mm(arrow_y - 2.0)))
+    s_head1.SetEnd(pcbnew.VECTOR2I(mm(cx - 1.2), mm(arrow_y - 0.7)))
     s_head1.SetLayer(pcbnew.F_SilkS)
-    s_head1.SetWidth(mm(0.25))
+    s_head1.SetWidth(mm(0.35))
     board.Add(s_head1)
 
     s_head2 = pcbnew.PCB_SHAPE(board)
     s_head2.SetShape(pcbnew.SHAPE_T_SEGMENT)
-    s_head2.SetStart(pcbnew.VECTOR2I(mm(cx), mm(arrow_y - 1.5)))
-    s_head2.SetEnd(pcbnew.VECTOR2I(mm(cx + 0.8), mm(arrow_y - 0.7)))
+    s_head2.SetStart(pcbnew.VECTOR2I(mm(cx), mm(arrow_y - 2.0)))
+    s_head2.SetEnd(pcbnew.VECTOR2I(mm(cx + 1.2), mm(arrow_y - 0.7)))
     s_head2.SetLayer(pcbnew.F_SilkS)
-    s_head2.SetWidth(mm(0.25))
+    s_head2.SetWidth(mm(0.35))
     board.Add(s_head2)
+
+    # Bottom board silkscreen branding: FerroxRC WingFC Rev C
+    b_brand = pcbnew.PCB_TEXT(board)
+    b_brand.SetText("FerroxRC WingFC Rev C")
+    b_brand.SetPosition(pcbnew.VECTOR2I(mm(cx), mm(103.5)))
+    b_brand.SetLayer(pcbnew.B_SilkS)
+    b_brand.SetMirrored(True)
+    b_brand.SetTextSize(pcbnew.VECTOR2I(mm(0.8), mm(0.8)))
+    b_brand.SetTextThickness(mm(0.12))
+    board.Add(b_brand)
 
     # 7. Antenna Keepout Zone (All Copper Layers)
     keepout = pcbnew.ZONE(board)
